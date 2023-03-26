@@ -1,132 +1,99 @@
 #!/bin/bash
 
-# ASCII art banner
-echo "
-   __  __  __  __  __  __  __ 
-  /  \/  \/  \/  \/  \/  \/  \
- ( W   A   K   E   D   O   G )
-  \__/\__/\__/\__/\__/\__/\__/
-"
+# Ensure the script is run as root
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root" 1>&2
+  exit 1
+fi
 
-# Create a function to prompt the user for confirmation before executing a block of code
-function ConfirmExecution() {
-    read -p "$1 (Y/N)" -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        return 0
-    else
-        return 1
-    fi
+# Update the system
+function update_system {
+  apt update && apt upgrade -y
 }
 
-# 1. Harden the system by enabling built-in security features
-# 1.1 Enable the firewall
-if !(ufw status | grep -q "active"); then
-    if ConfirmExecution "Do you want to enable the firewall?"; then
-        ufw enable
-    fi
-fi
+# Install necessary packages
+function install_packages {
+  apt install -y rkhunter clamav clamav-daemon unattended-upgrades deborphan
+}
 
-# 1.2 Enable automatic security updates
-if !(grep "APT::Periodic::Update-Package-Lists" /etc/apt/apt.conf.d/10periodic | grep -q "1"); then
-    if ConfirmExecution "Do you want to enable automatic security updates?"; then
-        # Set the update frequency to daily
-        sed -i "s/APT::Periodic::Update-Package-Lists \"0\"/APT::Periodic::Update-Package-Lists \"1\"/g" /etc/apt/apt.conf.d/10periodic
-    fi
-fi
+# Configure unattended-upgrades
+function configure_unattended_upgrades {
+  dpkg-reconfigure -plow unattended-upgrades
+}
 
-# 1.3 Enable strong passwords
-if !(grep "pam_pwquality.so" /etc/pam.d/common-password | grep -q "minlen=8"); then
-    if ConfirmExecution "Do you want to enable strong passwords (minimum length 8 characters)?"; then
-        # Set the minimum password length to 8 characters
-        sed -i "s/pam_pwquality.so/pam_pwquality.so minlen=8/g" /etc/pam.d/common-password
-    fi
-fi
+# Remove bloatware
+function remove_bloatware {
+  apt remove --purge -y hexchat thunderbird pidgin transmission-gtk rhythmbox gnome-mahjongg aisleriot
+}
 
-# 2.1 Remove harmful software (e.g. malware, adware)
-if ConfirmExecution "Do you want to scan for and remove harmful software?"; then
-    # Use ClamAV to scan for and remove harmful software
-    sudo freshclam
-    sudo clamscan --remove --recursive /
-fi
+# Clean up orphaned packages
+function cleanup_orphaned_packages {
+  deborphan | xargs sudo apt remove --purge -y
+}
 
-# 3. Debloat the system by removing unnecessary features and components
-# 3.1 Remove unnecessary Ubuntu features and components
-if ConfirmExecution "Do you want to remove unnecessary Ubuntu features and components?"; then
-    # List of unnecessary features and components can be customized to suit the user's needs
-    # Example: remove Amazon, LibreOffice, and Shotwell
-    sudo apt-get purge ubuntu-web-launchers libreoffice-core shotwell
-fi
+# Configure firewall (ufw)
+function configure_firewall {
+  ufw enable
+  ufw default deny incoming
+  ufw default allow outgoing
+}
 
-# 3.2 Remove bloatware (i.e. pre-installed manufacturer software)
-if ConfirmExecution "Do you want to remove bloatware?"; then
-    # List of bloatware can be customized to suit the user's needs
-    # Example: remove Candy Crush, Farmville, and other Snap Store games
-    sudo snap remove candy-crush
-    sudo snap remove farmville
-    sudo snap remove spaceteam
-    sudo snap remove a-dark-room
-    sudo snap remove ibooks
-    sudo snap remove pixelmator
-    sudo snap remove garageband
-    sudo snap remove xcode
-fi
+# Disable root login
+function disable_root_login {
+  passwd -l root
+}
 
-# 4. Customize system settings to improve security and performance
-# 4.1 Enable automatic updates
-if !(grep "Unattended-Upgrade::Automatic-Reboot" /etc/apt/apt.conf.d/50unattended-upgrades | grep -q "true"); then
-    if ConfirmExecution "Do you want to enable automatic updates?"; then
-        # Enable automatic updates and reboot
-        sed -i "s/Unattended-Upgrade::Automatic-Reboot \"false\"/Unattended-Upgrade::Automatic-Reboot \"true\"/g" /etc/apt/apt.conf.d/50unattended-upgrades
-    fi
-fi
+# Secure SSH
+function secure_ssh {
+  sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+  sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+  sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config
+  systemctl restart ssh
+}
 
-# 4.2 Enable automatic security updates
-if !(grep "APT::Periodic::Unattended-Upgrade" /etc/apt/apt.conf.d/10periodic | grep -q "1"); then
-    if ConfirmExecution "Do you want to enable automatic security updates?"; then
-        # Set the update frequency to daily
-        sed -i "s/APT::Periodic::Unattended-Upgrade \"0\"/APT::Periodic::Unattended-Upgrade \"1\"/g" /etc/apt/apt.conf.d/10periodic
-    fi
-fi
+# Configure periodic checks with rkhunter and ClamAV
+function configure_periodic_checks {
+  echo "0 0 * * * root rkhunter --update --propupd --check" >> /etc/crontab
+  echo "0 0 * * * root freshclam && clamscan -r / --exclude-dir=^/sys --exclude-dir=^/dev --exclude-dir=^/proc --exclude-dir=^/run --exclude-dir=^/var/lib/clamav --remove=yes --quiet" >> /etc/crontab
+}
 
-# 5. Optimize system performance
-# 5.1 Defragment hard drive
-if ConfirmExecution "Do you want to defragment the hard drive?"; then
-    # Choose the hard drive to defragment (e.g. /dev/sda)
-    read -p "Enter the hard drive to defragment (e.g. /dev/sda): " hardDrive
-    sudo e4defrag "$hardDrive"
-fi
+# Enable auditing
+function enable_auditing {
+  apt install -y auditd audispd-plugins
+  systemctl enable auditd
+  systemctl start auditd
+}
 
-# 5.2 Clear temporary files
-if ConfirmExecution "Do you want to clear temporary files?"; then
-    sudo rm -rf /tmp/*
-    sudo rm -rf /var/tmp/*
-fi
+# Apply file permissions and ownership
+function set_permissions_ownership {
+  chown root:root /etc/shadow
+  chmod 640 /etc/shadow
+  chown root:root /etc/gshadow
+  chmod 640 /etc/gshadow
+}
 
-# 5.3 Disable unnecessary services
-if ConfirmExecution "Do you want to disable unnecessary services?"; then
-    # List of unnecessary services can be customized to suit the user's needs
-    # Example: disable print spooler service if there are no printers installed
-    if [[ $(lpstat -p | wc -l) -eq 0 ]]; then
-        sudo systemctl disable cups
-        sudo systemctl stop cups
-    fi
-fi
+# Enable AppArmor
+function enable_apparmor {
+  apt install -y apparmor apparmor-profiles apparmor-utils
+  systemctl enable apparmor
+  systemctl start apparmor
+}
 
-# 6. Perform a system backup
-if ConfirmExecution "Do you want to perform a system backup?"; then
-    # Choose a backup location (e.g. external hard drive, network share)
-    read -p "Enter the backup location (e.g. /media/backup): " backupLocation
-    # Set the date and time as the backup folder name
-    dateTime=$(date +%Y-%m-%d_%H-%M-%S)
-    backupFolder="$backupLocation/$dateTime"
-    # Create the backup folder
-    mkdir "$backupFolder"
-    # Perform the backup using the built-in Deja Dup tool
-    deja-dup --backup --folder "$backupFolder"
-fi
+# Execute functions
+update_system
+install_packages
+configure_unattended_upgrades
+remove_bloatware
+cleanup_orphaned_packages
+configure_firewall
+disable_root_login
+secure_ssh
+configure_periodic_checks
+enable_auditing
+set_permissions_ownership
+enable_apparmor
 
-# 7. Restart the system
-if ConfirmExecution "Do you want to restart the system now?"; then
-    sudo shutdown -r now
-fi
+# Reboot the system
+echo "Rebooting the system in 30 seconds. Press Ctrl+C to cancel."
+sleep 30
+reboot
