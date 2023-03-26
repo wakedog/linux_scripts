@@ -29,13 +29,13 @@ Usage
 
 To use the security hardening script, follow these steps:
 
-Clone this repository to your local machine: git clone https://github.com/username/security-hardening-script.git
+Clone this repository to your local machine: git clone https://github.com/wakedog/linux_scripts/blob/main/linux_script.sh
 
-Navigate to the cloned repository: cd security-hardening-script
+Navigate to the cloned repository with cd (Change Directory)
 
-Make the script executable: chmod +x security-hardening.sh
+Make the script executable: chmod +x linux_script.sh
 
-Run the script as root or with sudo privileges: sudo ./security-hardening.sh
+Run the script as root or with sudo privileges: sudo ./linux_script.sh
 
 
 Resources
