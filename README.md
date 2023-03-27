@@ -29,7 +29,7 @@ Usage
 
 To use the security hardening script, follow these steps:
 
-Clone this repository to your local machine: git clone https://github.com/wakedog/linux_scripts/blob/main/linux_script.sh
+Clone this repository to your local machine: git clone https://github.com/wakedog/linux_script.sh
 
 Navigate to the cloned repository with cd (Change Directory)
 
@@ -40,7 +40,7 @@ Run the script as root or with sudo privileges: sudo ./linux_script.sh
 
 Resources
 
-To learn more about security hardening and relevant regulations, visit the following links:
+To learn more about security hardening and relevant regulations, visit the following sites:
 
     Defense Information Systems Agency (DISA)
     National Security Agency (NSA)
