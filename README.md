@@ -29,7 +29,7 @@ Usage
 
 To use the security hardening script, follow these steps:
 
-Clone this repository to your local machine: git clone https://github.com/wakedog/linux_script.sh
+Clone this repository to your local machine: git clone https://github.com/wakedog/linux_scripts.git
 
 Navigate to the cloned repository with cd (Change Directory)
 
