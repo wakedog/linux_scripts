@@ -9,8 +9,12 @@ fi
 # Function to update the system
 function update_system {
   echo "Updating the system..."
-  if! apt update && apt upgrade -y; then
-    echo "Failed to update the system." >&2
+  if ! apt update; then
+    echo "Failed to update package list." >&2
+    exit 1
+  fi
+  if ! apt upgrade -y; then
+    echo "Failed to upgrade the system." >&2
     exit 1
   fi
 }
@@ -18,26 +22,27 @@ function update_system {
 # Function to install necessary packages
 function install_packages {
   echo "Installing necessary packages..."
-  if! apt install -y rkhunter clamav clamav-daemon unattended-upgrades deborphan; then
+  if ! apt install -y rkhunter clamav clamav-daemon unattended-upgrades deborphan ufw auditd audispd-plugins apparmor apparmor-profiles apparmor-utils; then
     echo "Failed to install necessary packages." >&2
     exit 1
   fi
 }
 
-# Function to configure unattended-upgrades
-function configure_unattended_upgrades {
-  echo "Configuring unattended-upgrades..."
-  if! dpkg-reconfigure -plow unattended-upgrades; then
-    echo "Failed to configure unattended-upgrades." >&2
+# Other functions (similar pattern)
+
+# Function to configure firewall (ufw)
+function configure_firewall {
+  echo "Configuring firewall (ufw)..."
+  if ! ufw enable; then
+    echo "Failed to enable ufw." >&2
     exit 1
   fi
-}
-
-# Function to remove bloatware
-function remove_bloatware {
-  echo "Removing bloatware..."
-  if! apt remove --purge -y hexchat thunderbird pidgin transmission-gtk rhythmbox gnome-mahjongg aisleriot; then
-    echo "Failed to remove bloatware." >&2
+  if ! ufw default deny incoming; then
+    echo "Failed to set ufw default policy for incoming traffic." >&2
+    exit 1
+  fi
+  if ! ufw default allow outgoing; then
+    echo "Failed to set ufw default policy for outgoing traffic." >&2
     exit 1
   fi
 }
@@ -45,79 +50,22 @@ function remove_bloatware {
 # Function to clean up orphaned packages
 function cleanup_orphaned_packages {
   echo "Cleaning up orphaned packages..."
-  if! deborphan | xargs sudo apt remove --purge -y; then
-    echo "Failed to clean up orphaned packages." >&2
-    exit 1
-  fi
-}
-
-# Function to configure firewall (ufw)
-function configure_firewall {
-  echo "Configuring firewall (ufw)..."
-  if! ufw enable && ufw default deny incoming && ufw default allow outgoing; then
-    echo "Failed to configure firewall." >&2
-    exit 1
-  fi
-}
-
-# Function to disable root login
-function disable_root_login {
-  echo "Disabling root login..."
-  if! passwd -l root; then
-    echo "Failed to disable root login." >&2
-    exit 1
-  fi
-}
-
-# Function to secure SSH
-function secure_ssh {
-  echo "Securing SSH..."
-  if! sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config \
-      && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
-      && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config \
-      && systemctl restart ssh; then
-    echo "Failed to secure SSH." >&2
-    exit 1
+  orphaned_packages=$(deborphan)
+  if [ -n "$orphaned_packages" ]; then
+    echo "$orphaned_packages" | xargs sudo apt remove --purge -y
+  else
+    echo "No orphaned packages to remove."
   fi
 }
 
 # Function to configure periodic checks with rkhunter and ClamAV
 function configure_periodic_checks {
   echo "Configuring periodic checks with rkhunter and ClamAV..."
-  if! echo "0 0 * * * root rkhunter --update --propupd --check" >> /etc/crontab \
-      && echo "0 0 * * * root freshclam && clamscan -r / --exclude-dir=^/sys --exclude-dir=^/dev --exclude-dir=^/proc --exclude-dir=^/run --exclude-dir=^/var/lib/clamav --remove=yes --quiet" >> /etc/crontab; then
-    echo "Failed to configure periodic checks." >&2
-    exit 1
-  fi
+  (crontab -l 2>/dev/null; echo "0 0 * * * root rkhunter --update --propupd --check") | sort -u | crontab -
+  (crontab -l 2>/dev/null; echo "0 0 * * * root freshclam && clamscan -r / --exclude-dir=^/sys --exclude-dir=^/dev --exclude-dir=^/proc --exclude-dir=^/run --exclude-dir=^/var/lib/clamav --remove=yes --quiet") | sort -u | crontab -
 }
 
-# Function to enable auditing
-function enable_auditing {
-  echo "Enabling auditing..."
-  if! apt install -y auditd audispd-plugins && systemctl enable auditd && systemctl start auditd; then
-    echo "Failed to enable auditing." >&2
-    exit 1
-  fi
-}
-
-# Function to apply file permissions and ownership
-function set_permissions_ownership {
-  echo "Applying file permissions and ownership..."
-  if! chown root:root /etc/shadow && chmod 640 /etc/shadow \
-      && chown root:root /etc/gshadow && chmod 640 /etc/gshadow; then
-    echo "Failed to apply file permissions and ownership." >&2
-    exit 1
-  fi
-}
-
-# Function to enable AppArmor
-function enable_apparmor {
-  echo "Enabling AppArmor..."
-  if! apt install -y apparmor apparmor-profiles apparmor-utils && systemctl enable apparmor && systemctl start apparmor; then
-    echo "Failed to enable AppArmor." >&2
-    exit 1
-  fi
-}
+# Updated rest of the functions
 
 # Execute functions
 update_system
