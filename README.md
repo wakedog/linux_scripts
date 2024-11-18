@@ -27,23 +27,23 @@ The script includes functions for updating the system, installing necessary pack
 
 1. **Clone the Repository**: First, clone the GitHub repository containing the script.
    ```sh
-   git clone https://github.com/wakedog/system-hardening-script.git
-   cd system-hardening-script
+   git clone https://github.com/wakedog/linux_scripts.git
+   cd Linux_scripts
    ```
 
 2. **Make the Script Executable**: Grant execute permissions to the script.
    ```sh
-   chmod +x system_hardening_script.sh
+   chmod +x Linux_scripts.sh
    ```
 
 3. **Run the Script**: Execute the script with root privileges.
    ```sh
-   sudo ./system_hardening_script.sh
+   sudo ./Linux_scripts.sh
    ```
 
 4. **Monitor Logs**: The script logs its actions to `/var/log/system_hardening_script.log`. You can check this file to see the detailed actions and results of each step.
    ```sh
-   cat /var/log/system_hardening_script.log
+   cat /var/log/Linux_scripts.log
    ```
 
 ## Script Details
