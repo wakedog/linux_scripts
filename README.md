@@ -33,17 +33,17 @@ The script includes functions for updating the system, installing necessary pack
 
 2. **Make the Script Executable**: Grant execute permissions to the script.
    ```sh
-   chmod +x linux_scripts.sh
+   chmod +x linux_script.sh
    ```
 
 3. **Run the Script**: Execute the script with root privileges.
    ```sh
-   sudo ./linux_scripts.sh
+   sudo ./linux_script.sh
    ```
 
 4. **Monitor Logs**: The script logs its actions to `/var/log/linux_script.log`. You can check this file to see the detailed actions and results of each step.
    ```sh
-   cat /var/log/linux_scripts.log
+   cat /var/log/linux_script.log
    ```
 
 ## Script Details
