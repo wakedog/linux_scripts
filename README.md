@@ -27,7 +27,7 @@ The script includes functions for updating the system, installing necessary pack
 
 1. **Clone the Repository**: First, clone the GitHub repository containing the script.
    ```sh
-   git clone https://github.com/yourusername/system-hardening-script.git
+   git clone https://github.com/wakedog/system-hardening-script.git
    cd system-hardening-script
    ```
 
